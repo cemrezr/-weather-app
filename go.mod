@@ -5,6 +5,7 @@ go 1.21.1
 require (
 	github.com/gorilla/mux v1.8.1
 	github.com/spf13/viper v1.19.0
+	golang.org/x/sync v0.6.0
 )
 
 require (
