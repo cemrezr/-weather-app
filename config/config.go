@@ -24,14 +24,6 @@ func LoadEnv() {
 func LoadConfig() *WeatherAppScheme {
 	var config WeatherAppScheme
 
-	config.Database.Host = viper.GetString("DB_HOST")
-	config.Database.Port = viper.GetInt("DB_PORT")
-	config.Database.User = viper.GetString("DB_USER")
-	config.Database.Password = viper.GetString("DB_PASSWORD")
-	config.Database.DBName = viper.GetString("DB_NAME")
-	config.Database.SSLMode = viper.GetString("DB_SSLMODE")
-	config.Database.TimeZone = viper.GetString("DB_TIMEZONE")
-
 	if err := viper.Unmarshal(&config); err != nil {
 		log.Fatalf("Unable to decode configuration into struct: %v", err)
 	}

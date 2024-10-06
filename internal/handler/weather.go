@@ -2,11 +2,10 @@ package handler
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"weather-app/internal/batch"
-
-	"github.com/gorilla/mux"
 )
 
 type WeatherHandler struct {
@@ -18,10 +17,9 @@ func NewWeatherHandler(batchManager *batch.BatchRequestManager) *WeatherHandler 
 }
 
 func (h *WeatherHandler) GetWeather(w http.ResponseWriter, r *http.Request) {
-	vars := mux.Vars(r)
-	location := vars["location"]
+	location := r.URL.Query().Get("q")
 	if location == "" {
-		http.Error(w, "Location is required", http.StatusBadRequest)
+		http.Error(w, "Location query parameter 'q' is required", http.StatusBadRequest)
 		return
 	}
 
@@ -32,11 +30,15 @@ func (h *WeatherHandler) GetWeather(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	response := fmt.Sprintf("Average Temperature for %s: %.2f°C\n", location, avgTemp)
-	w.Header().Set("Content-Type", "text/plain")
+	response := map[string]interface{}{
+		"location":    location,
+		"temperature": fmt.Sprintf("%.2f", avgTemp),
+	}
+
+	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-	_, err = w.Write([]byte(response))
+	err = json.NewEncoder(w).Encode(response)
 	if err != nil {
-		fmt.Printf("Failed to write response: %v\n", err)
+		http.Error(w, fmt.Sprintf("Failed to encode response: %v", err), http.StatusInternalServerError)
 	}
 }

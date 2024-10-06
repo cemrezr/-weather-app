@@ -46,7 +46,7 @@ func (o *WeatherOrchestrator) GetAverageTemperaturesBatch(ctx context.Context, l
 				return err
 			}
 
-			avgTemp := CalculateAverageTemperature(service1Temp, service2Temp)
+			avgTemp := calculateAverageTemperature(service1Temp, service2Temp)
 
 			go func() {
 				query := &repository.WeatherQuery{
@@ -133,6 +133,6 @@ func (o *WeatherOrchestrator) getTemperaturesForLocation(ctx context.Context, lo
 	return temperatures[0], temperatures[1], nil
 }
 
-func CalculateAverageTemperature(temp1, temp2 float64) float64 {
+func calculateAverageTemperature(temp1, temp2 float64) float64 {
 	return (temp1 + temp2) / 2.0
 }

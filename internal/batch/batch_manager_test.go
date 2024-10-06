@@ -80,19 +80,3 @@ func TestBatchRequestManager_AddRequest_MaxBatchSize(t *testing.T) {
 	wg.Wait()
 	orchestratorMock.AssertExpectations(t)
 }
-
-/*func TestBatchRequestManager_ProcessBatch_Error(t *testing.T) {
-  orchestratorMock := new(WeatherOrchestratorMock)
-
-  orchestratorMock.On("GetAverageTemperaturesBatch", mock.Anything, []string{"Istanbul"}, 1).Return(nil, fmt.Errorf("some error"))
-
-  batchManager := NewBatchRequestManager(orchestratorMock)
-
-  ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
-  defer cancel()
-  _, err := batchManager.AddRequest(ctx, "Istanbul")
-
-  assert.Error(t, err)
-  assert.Contains(t, err.Error(), "some error")
-  orchestratorMock.AssertExpectations(t)
-}*/

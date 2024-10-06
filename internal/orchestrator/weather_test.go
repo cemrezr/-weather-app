@@ -123,40 +123,6 @@ func TestWeatherOrchestrator_GetAverageTemperaturesBatch_ErrorFromWeatherStackCl
 	weatherStackClient.AssertExpectations(t)
 }
 
-/*func TestWeatherOrchestrator_GetAverageTemperaturesBatch_DatabaseError(t *testing.T) {
-  weatherClient := new(WeatherClientMock)
-  weatherStackClient := new(WeatherStackClientMock)
-  repo := new(RepositoryMock)
-
-  weatherData := &weatherclient.CurrentWeather{Temperature: 25.0}
-  weatherStackData := &weatherstackclient.CurrentWeather{Temperature: 26.0}
-
-  weatherClient.On("GetWeatherData", mock.Anything, "Istanbul").Return(weatherData, nil)
-  weatherStackClient.On("GetWeatherData", mock.Anything, "Istanbul").Return(weatherStackData, nil)
-
-  repo.On("CreateWeatherQuery", mock.Anything).Return(fmt.Errorf("database error"))
-
-  // WeatherOrchestrator nesnesi oluşturma
-  orchestrator := NewWeatherOrchestrator(weatherClient, weatherStackClient, repo)
-
-  // Fonksiyonu test etme
-  ctx := context.Background()
-  locations := []string{"Istanbul"}
-  results, err := orchestrator.GetAverageTemperaturesBatch(ctx, locations, 1)
-
-  // Beklenen sonuçlar
-  expectedResult := map[string]float64{"Istanbul": 25.5}
-
-  // Assertions
-  assert.Error(t, err)                     // Hata bekleniyor
-  assert.Equal(t, expectedResult, results) // Sonuçlar yine de dönebilir
-
-  // Mock'ların beklenen fonksiyon çağrılarını yaptığından emin olma
-  weatherClient.AssertExpectations(t)
-  weatherStackClient.AssertExpectations(t)
-  repo.AssertExpectations(t)
-}*/
-
 func TestWeatherOrchestrator_GetAverageTemperaturesBatch_EmptyLocations(t *testing.T) {
 	weatherClient := new(WeatherClientMock)
 	weatherStackClient := new(WeatherStackClientMock)
