@@ -11,34 +11,63 @@ Before you begin, ensure you have the following tools installed on your system:
 - [Docker Compose](https://docs.docker.com/compose/install/)
 
 ## Project Setup
-
-Running the Application
-
-Build and Start the Application
+Build and run the application using Docker Compose:
 To build and start the application, run the following command:
 
-bash
-docker-compose up -d --build
+```
+
+
+docker-compose up --build
+
+```
 
 This command will build the application image, create the necessary containers, and start the services in detached mode.
 
-Testing the Application
+## Testing the Application
 
-Access the Application
+Access the Application:
 You can access the weather application via the following endpoint:
+
+```
 
 http://localhost:8081/weather/{location}
 
+```
+
 Replace {location} with the desired city name (e.g., http://localhost:8081/weather/Istanbul).
 Example request:
+
+```
+
 curl http://localhost:8081/weather/Istanbul
+
+```
 
 This should return the average temperature for the specified location.
 
-Inspect the Database
+If you want to send multiple requests simultaneously and run them in the background, you can use the & operator at the end of the curl commands as shown below:
+
+```
+curl http://localhost:8081/weather/Istanbul &
+curl http://localhost:8081/weather/Istanbul &
+curl http://localhost:8081/weather/Istanbul &
+
+```
+
+
+## Inspect the Database
 If you want to verify that the data is being stored in the database, you can log into the PostgreSQL container:
+
+```
 
 docker-compose exec postgres psql -U weather_user -d weather_db
 
+```
+
 Then, check the tables and records:
+
+```
+
 SELECT * FROM weather_queries;
+
+```
