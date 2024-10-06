@@ -5,8 +5,7 @@ Weather App is a Golang-based application that provides weather information for 
 ## Technical Overview
 
 ### Endpoint: 
-The application provides a single endpoint /weather?q=<location>.     
-For each request to this endpoint, the app fetches data from two external weather APIs, averages the temperature values.
+The application provides a single endpoint `/weather?q=\<location\>`.  For each request to this endpoint, the app fetches data from two external weather APIs, averages the temperature values.
 
 ### Request Handling:
 To reduce the cost of using external weather APIs, incoming requests for the same location are grouped and handled together.  If multiple requests for the same location are received within a 5-second window, they are consolidated into a single API call, and the response is shared among all waiting requests.
