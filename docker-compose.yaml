@@ -24,8 +24,9 @@ services:
     image: postgres:13
     container_name: weather-postgres
     environment:
-      - POSTGRES_USER=postgres
-      - POSTGRES_PASSWORD=postgres_password
+      - POSTGRES_USER=weather_user
+      - POSTGRES_PASSWORD=weather_password
+      - POSTGRES_DB=weather_db
     ports:
       - "5432:5432"
     volumes:
