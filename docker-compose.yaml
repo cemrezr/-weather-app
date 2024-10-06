@@ -1,0 +1,54 @@
+version: '3.8'
+
+services:
+  weather-app:
+    build: .
+    container_name: weather-app
+    ports:
+      - "8081:8080"
+    environment:
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_USER=weather_user
+      - DB_PASSWORD=weather_password
+      - DB_NAME=weather_db
+      - DB_SSLMODE=disable
+      - DB_TIMEZONE=UTC
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - weather-net
+
+  postgres:
+    image: postgres:13
+    container_name: weather-postgres
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres_password
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 10s
+      retries: 5
+    networks:
+      - weather-net
+
+  adminer:
+    image: adminer
+    restart: always
+    ports:
+      - 8080:8080
+    networks:
+      - weather-net
+
+volumes:
+  pgdata:
+
+networks:
+  weather-net:
+    driver: bridge
