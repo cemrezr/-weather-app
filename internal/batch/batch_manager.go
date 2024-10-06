@@ -18,10 +18,10 @@ type BatchRequest struct {
 type BatchRequestManager struct {
 	mu             sync.Mutex
 	pendingBatches map[string]*BatchRequest
-	Orchestrator   *orchestrator.WeatherOrchestrator
+	Orchestrator   orchestrator.WeatherOrchestratorInterface
 }
 
-func NewBatchRequestManager(orchestrator *orchestrator.WeatherOrchestrator) *BatchRequestManager {
+func NewBatchRequestManager(orchestrator orchestrator.WeatherOrchestratorInterface) *BatchRequestManager {
 	return &BatchRequestManager{
 		pendingBatches: make(map[string]*BatchRequest),
 		Orchestrator:   orchestrator,
@@ -71,6 +71,14 @@ func (m *BatchRequestManager) processBatch(ctx context.Context, location string)
 		m.mu.Unlock()
 		return
 	}
+
+	if batch == nil || len(batch.Requests) == 0 {
+		fmt.Printf("No requests to process for location: %s\n", location)
+		delete(m.pendingBatches, location)
+		m.mu.Unlock()
+		return
+	}
+
 	delete(m.pendingBatches, location)
 	m.mu.Unlock()
 
@@ -86,15 +94,30 @@ func (m *BatchRequestManager) processBatch(ctx context.Context, location string)
 		return
 	}
 
+	if avgTempMap == nil {
+		fmt.Printf("Received nil map for location: %s\n", location)
+		for _, reqCh := range batch.Requests {
+			reqCh <- nil
+			close(reqCh)
+		}
+		return
+	}
+
 	avgTemp, ok := avgTempMap[location]
 	if !ok {
 		fmt.Printf("No temperature data available for location %s\n", location)
+		for _, reqCh := range batch.Requests {
+			reqCh <- nil
+			close(reqCh)
+		}
 		return
 	}
 
 	for _, reqCh := range batch.Requests {
-		reqCh <- &avgTemp
-		close(reqCh)
+		if reqCh != nil {
+			reqCh <- &avgTemp
+			close(reqCh)
+		}
 	}
 
 	fmt.Printf("Successfully processed batch for location: %s with average temperature: %.2f°C\n", location, avgTemp)

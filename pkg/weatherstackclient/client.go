@@ -10,6 +10,10 @@ import (
 	"time"
 )
 
+type IWeatherStackClient interface {
+	GetWeatherData(ctx context.Context, location string) (*CurrentWeather, error)
+}
+
 type Config struct {
 	BaseURL string
 	APIKey  string

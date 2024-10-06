@@ -1,10 +1,17 @@
-// repository/weather_repository.go
 package repository
 
 import (
-	"gorm.io/gorm"
 	"log"
+
+	"gorm.io/gorm"
 )
+
+type WeatherRepositoryInterface interface {
+	CreateWeatherQuery(query *WeatherQuery) error
+	GetWeatherQueriesByLocation(location string) ([]WeatherQuery, error)
+	GetAllWeatherQueries() ([]WeatherQuery, error)
+	DeleteWeatherQuery(id uint) error
+}
 
 type WeatherRepository struct {
 	db *gorm.DB

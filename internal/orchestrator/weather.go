@@ -13,14 +13,17 @@ import (
 	"golang.org/x/sync/errgroup"
 )
 
-type WeatherOrchestrator struct {
-	WeatherClient      *weatherclient.Client
-	WeatherStackClient *weatherstackclient.Client
-	Repository         *repository.WeatherRepository
+type WeatherOrchestratorInterface interface {
+	GetAverageTemperaturesBatch(ctx context.Context, locations []string, requestsCount int) (map[string]float64, error)
 }
 
-// NewWeatherOrchestrator, WeatherOrchestrator oluşturur.
-func NewWeatherOrchestrator(weatherClient *weatherclient.Client, weatherStackClient *weatherstackclient.Client, repo *repository.WeatherRepository) *WeatherOrchestrator {
+type WeatherOrchestrator struct {
+	WeatherClient      weatherclient.IWeatherClient
+	WeatherStackClient weatherstackclient.IWeatherStackClient
+	Repository         repository.WeatherRepositoryInterface
+}
+
+func NewWeatherOrchestrator(weatherClient weatherclient.IWeatherClient, weatherStackClient weatherstackclient.IWeatherStackClient, repo repository.WeatherRepositoryInterface) WeatherOrchestratorInterface {
 	return &WeatherOrchestrator{
 		WeatherClient:      weatherClient,
 		WeatherStackClient: weatherStackClient,
@@ -32,6 +35,7 @@ func (o *WeatherOrchestrator) GetAverageTemperaturesBatch(ctx context.Context, l
 	results := make(map[string]float64)
 	mu := &sync.Mutex{}
 	g, ctx := errgroup.WithContext(ctx)
+	errChan := make(chan error, 1)
 
 	for _, location := range locations {
 		loc := location
@@ -44,17 +48,20 @@ func (o *WeatherOrchestrator) GetAverageTemperaturesBatch(ctx context.Context, l
 
 			avgTemp := CalculateAverageTemperature(service1Temp, service2Temp)
 
-			query := &repository.WeatherQuery{
-				Location:     loc,
-				Service1Temp: service1Temp,
-				Service2Temp: service2Temp,
-				RequestCount: requestsCount,
-				CreatedAt:    time.Now(),
-			}
+			go func() {
+				query := &repository.WeatherQuery{
+					Location:     loc,
+					Service1Temp: service1Temp,
+					Service2Temp: service2Temp,
+					RequestCount: requestsCount,
+					CreatedAt:    time.Now(),
+				}
 
-			if err := o.Repository.CreateWeatherQuery(query); err != nil {
-				log.Printf("Failed to insert weather query for location %s: %v\n", loc, err)
-			}
+				if err := o.Repository.CreateWeatherQuery(query); err != nil {
+					log.Printf("Failed to insert weather query for location %s: %v\n", loc, err)
+					errChan <- fmt.Errorf("database error: %w", err)
+				}
+			}()
 
 			mu.Lock()
 			results[loc] = avgTemp
@@ -68,16 +75,20 @@ func (o *WeatherOrchestrator) GetAverageTemperaturesBatch(ctx context.Context, l
 		return nil, err
 	}
 
-	return results, nil
+	select {
+	case err := <-errChan:
+		return results, err
+	default:
+		return results, nil
+	}
 }
 
 func (o *WeatherOrchestrator) getTemperaturesForLocation(ctx context.Context, location string) (float64, float64, error) {
 	var wg sync.WaitGroup
 	var mu sync.Mutex
-	temperatures := make([]float64, 2) // İlk eleman service1Temp, ikinci eleman service2Temp olacak
+	temperatures := make([]float64, 2)
 	errChan := make(chan error, 2)
 
-	// WeatherClient'ten veri çekme
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
@@ -86,12 +97,15 @@ func (o *WeatherOrchestrator) getTemperaturesForLocation(ctx context.Context, lo
 			errChan <- fmt.Errorf("WeatherClient error: %w", err)
 			return
 		}
+		if weatherData == nil {
+			errChan <- fmt.Errorf("WeatherClient returned nil data for location: %s", location)
+			return
+		}
 		mu.Lock()
 		temperatures[0] = weatherData.Temperature
 		mu.Unlock()
 	}()
 
-	// WeatherStackClient'ten veri çekme
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
@@ -100,16 +114,18 @@ func (o *WeatherOrchestrator) getTemperaturesForLocation(ctx context.Context, lo
 			errChan <- fmt.Errorf("WeatherStackClient error: %w", err)
 			return
 		}
+		if weatherStackData == nil {
+			errChan <- fmt.Errorf("WeatherStackClient returned nil data for location: %s", location)
+			return
+		}
 		mu.Lock()
 		temperatures[1] = weatherStackData.Temperature
 		mu.Unlock()
 	}()
 
-	// Tüm goroutine'lerin tamamlanmasını bekle
 	wg.Wait()
 	close(errChan)
 
-	// Hata varsa döndür
 	for err := range errChan {
 		return 0, 0, err
 	}
