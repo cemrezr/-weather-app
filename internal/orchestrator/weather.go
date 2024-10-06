@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"log"
 	"sync"
+	"time"
+	"weather-app/internal/repository"
 	"weather-app/pkg/weatherclient"
 	"weather-app/pkg/weatherstackclient"
 
@@ -14,16 +16,19 @@ import (
 type WeatherOrchestrator struct {
 	WeatherClient      *weatherclient.Client
 	WeatherStackClient *weatherstackclient.Client
+	Repository         *repository.WeatherRepository
 }
 
-func NewWeatherOrchestrator(weatherClient *weatherclient.Client, weatherStackClient *weatherstackclient.Client) WeatherOrchestrator {
-	return WeatherOrchestrator{
+// NewWeatherOrchestrator, WeatherOrchestrator oluşturur.
+func NewWeatherOrchestrator(weatherClient *weatherclient.Client, weatherStackClient *weatherstackclient.Client, repo *repository.WeatherRepository) *WeatherOrchestrator {
+	return &WeatherOrchestrator{
 		WeatherClient:      weatherClient,
 		WeatherStackClient: weatherStackClient,
+		Repository:         repo,
 	}
 }
 
-func (o *WeatherOrchestrator) GetAverageTemperaturesBatch(ctx context.Context, locations []string) (map[string]float64, error) {
+func (o *WeatherOrchestrator) GetAverageTemperaturesBatch(ctx context.Context, locations []string, requestsCount int) (map[string]float64, error) {
 	results := make(map[string]float64)
 	mu := &sync.Mutex{}
 	g, ctx := errgroup.WithContext(ctx)
@@ -31,10 +36,24 @@ func (o *WeatherOrchestrator) GetAverageTemperaturesBatch(ctx context.Context, l
 	for _, location := range locations {
 		loc := location
 		g.Go(func() error {
-			avgTemp, err := o.getAverageTemperatureForLocation(ctx, loc)
+			service1Temp, service2Temp, err := o.getTemperaturesForLocation(ctx, loc)
 			if err != nil {
-				log.Printf("Failed to get average temperature for location %s: %v\n", loc, err)
+				log.Printf("Failed to get temperatures for location %s: %v\n", loc, err)
 				return err
+			}
+
+			avgTemp := CalculateAverageTemperature(service1Temp, service2Temp)
+
+			query := &repository.WeatherQuery{
+				Location:     loc,
+				Service1Temp: service1Temp,
+				Service2Temp: service2Temp,
+				RequestCount: requestsCount,
+				CreatedAt:    time.Now(),
+			}
+
+			if err := o.Repository.CreateWeatherQuery(query); err != nil {
+				log.Printf("Failed to insert weather query for location %s: %v\n", loc, err)
 			}
 
 			mu.Lock()
@@ -52,12 +71,13 @@ func (o *WeatherOrchestrator) GetAverageTemperaturesBatch(ctx context.Context, l
 	return results, nil
 }
 
-func (o *WeatherOrchestrator) getAverageTemperatureForLocation(ctx context.Context, location string) (float64, error) {
+func (o *WeatherOrchestrator) getTemperaturesForLocation(ctx context.Context, location string) (float64, float64, error) {
 	var wg sync.WaitGroup
 	var mu sync.Mutex
-	temperatures := []float64{}
+	temperatures := make([]float64, 2) // İlk eleman service1Temp, ikinci eleman service2Temp olacak
 	errChan := make(chan error, 2)
 
+	// WeatherClient'ten veri çekme
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
@@ -67,10 +87,11 @@ func (o *WeatherOrchestrator) getAverageTemperatureForLocation(ctx context.Conte
 			return
 		}
 		mu.Lock()
-		temperatures = append(temperatures, weatherData.Temperature)
+		temperatures[0] = weatherData.Temperature
 		mu.Unlock()
 	}()
 
+	// WeatherStackClient'ten veri çekme
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
@@ -80,25 +101,22 @@ func (o *WeatherOrchestrator) getAverageTemperatureForLocation(ctx context.Conte
 			return
 		}
 		mu.Lock()
-		temperatures = append(temperatures, weatherStackData.Temperature)
+		temperatures[1] = weatherStackData.Temperature
 		mu.Unlock()
 	}()
 
+	// Tüm goroutine'lerin tamamlanmasını bekle
 	wg.Wait()
 	close(errChan)
 
+	// Hata varsa döndür
 	for err := range errChan {
-		return 0, err
+		return 0, 0, err
 	}
 
-	var totalTemp float64
-	for _, temp := range temperatures {
-		totalTemp += temp
-	}
-	if len(temperatures) == 0 {
-		return 0, fmt.Errorf("no temperature data available for location: %s", location)
-	}
+	return temperatures[0], temperatures[1], nil
+}
 
-	avgTemp := totalTemp / float64(len(temperatures))
-	return avgTemp, nil
+func CalculateAverageTemperature(temp1, temp2 float64) float64 {
+	return (temp1 + temp2) / 2.0
 }

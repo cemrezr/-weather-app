@@ -76,7 +76,7 @@ func (m *BatchRequestManager) processBatch(ctx context.Context, location string)
 
 	fmt.Printf("Processing batch for location: %s with %d requests\n", location, len(batch.Requests))
 
-	avgTempMap, err := m.Orchestrator.GetAverageTemperaturesBatch(ctx, []string{location})
+	avgTempMap, err := m.Orchestrator.GetAverageTemperaturesBatch(ctx, []string{location}, len(batch.Requests))
 	if err != nil {
 		for _, reqCh := range batch.Requests {
 			reqCh <- nil

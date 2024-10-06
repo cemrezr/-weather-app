@@ -11,3 +11,13 @@ type WeatherStackConfig struct {
 	URL          string `mapstructure:"WEATHERSTACKSERVICE_URL"`
 	Timeout      int    `mapstructure:"WEATHERSTACKSERVICE_TIMEOUT"`
 }
+
+type DatabaseConfig struct {
+	Host     string
+	Port     int
+	User     string
+	Password string
+	DBName   string
+	SSLMode  string
+	TimeZone string
+}
