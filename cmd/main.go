@@ -9,6 +9,7 @@ import (
 	"weather-app/internal/batch"
 	"weather-app/internal/handler"
 	"weather-app/internal/orchestrator"
+	"weather-app/internal/repository"
 	"weather-app/pkg/weatherclient"
 	"weather-app/pkg/weatherstackclient"
 
@@ -22,6 +23,12 @@ func main() {
 	config.LoadEnv()
 	appConfig := config.LoadConfig()
 	log.Printf("Loaded Configuration: %+v\n", appConfig)
+	log.Printf("Loaded Configuration: %+v\n", appConfig.Database)
+
+	config.ConnectDatabase(appConfig.Database)
+	config.MigrateDatabase()
+
+	weatherRepo := repository.NewWeatherRepository(config.DB)
 
 	weatherClient := weatherclient.NewClient(weatherclient.Config{
 		BaseURL: appConfig.Weather.URL,
@@ -34,10 +41,9 @@ func main() {
 		APIKey:  appConfig.WeatherStack.ClientSecret,
 		Timeout: time.Duration(appConfig.WeatherStack.Timeout) * time.Second,
 	})
+	weatherOrchestrator := orchestrator.NewWeatherOrchestrator(weatherClient, weatherStackClient, weatherRepo)
 
-	weatherOrchestrator := orchestrator.NewWeatherOrchestrator(weatherClient, weatherStackClient)
-
-	batchManager := batch.NewBatchRequestManager(&weatherOrchestrator)
+	batchManager := batch.NewBatchRequestManager(weatherOrchestrator)
 
 	weatherHandler := handler.NewWeatherHandler(batchManager)
 
