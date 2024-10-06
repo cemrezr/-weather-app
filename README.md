@@ -43,7 +43,7 @@ You can access the weather application via the following endpoint:
 
 ```
 
-http://localhost:8081/weather/{location}
+http://localhost:8081//weather?q=<location>
 
 ```
 
@@ -52,8 +52,7 @@ Example request:
 
 ```
 
-curl http://localhost:8081/weather/Istanbul
-
+curl http://localhost:8080/weather?q=Istanbul
 ```
 
 This should return the average temperature for the specified location.
@@ -61,9 +60,9 @@ This should return the average temperature for the specified location.
 If you want to send multiple requests simultaneously and run them in the background, you can use the & operator at the end of the curl commands as shown below:
 
 ```
-curl http://localhost:8081/weather/Istanbul &
-curl http://localhost:8081/weather/Istanbul &
-curl http://localhost:8081/weather/Istanbul &
+curl http://localhost:8080/weather?q=Istanbul
+curl http://localhost:8080/weather?q=Istanbul
+curl http://localhost:8080/weather?q=Istanbul
 
 ```
 
