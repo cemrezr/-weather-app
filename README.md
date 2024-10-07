@@ -52,7 +52,7 @@ Example request:
 
 ```
 
-curl http://localhost:8080/weather?q=Istanbul
+curl http://localhost:8081/weather?q=Istanbul
 ```
 
 This should return the average temperature for the specified location.
