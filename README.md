@@ -47,7 +47,7 @@ http://localhost:8081//weather?q=<location>
 
 ```
 
-Replace {location} with the desired city name (e.g., http://localhost:8081/weather/Istanbul).
+Replace {location} with the desired city name (e.g., http://localhost:8080/weather?q=Istanbul).
 Example request:
 
 ```
