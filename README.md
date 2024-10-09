@@ -60,9 +60,9 @@ This should return the average temperature for the specified location.
 If you want to send multiple requests simultaneously and run them in the background, you can use the & operator at the end of the curl commands as shown below:
 
 ```
-curl http://localhost:8081/weather?q=Istanbul
-curl http://localhost:8081/weather?q=Istanbul
-curl http://localhost:8081/weather?q=Istanbul
+curl http://localhost:8081/weather?q=Istanbul &
+curl http://localhost:8081/weather?q=Istanbul &
+curl http://localhost:8081/weather?q=Istanbul &
 
 ```
 
